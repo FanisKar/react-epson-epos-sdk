@@ -1,0 +1,41 @@
+{
+  "name": "react-epson-epos-sdk",
+  "version": "0.1.0",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": "",
+  "peerDependencies": {
+    "react": "^17.0.0 || ^18.0.0 || ^19.0.0",
+    "react-dom": "^17.0.0 || ^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "axios": "1.8.4",
+    "dayjs": "1.11.13",
+    "lodash": "4.17.21",
+    "tslib": "2.8.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-babel": "6.0.4",
+    "@rollup/plugin-commonjs": "28.0.3",
+    "@rollup/plugin-json": "6.1.0",
+    "@rollup/plugin-node-resolve": "16.0.1",
+    "@rollup/plugin-typescript": "12.1.2",
+    "@types/lodash": "^4.17.16",
+    "@types/react": "19.0.0",
+    "@types/react-dom": "19.0.0",
+    "rollup": "4.37.0",
+    "rollup-plugin-dts": "6.2.1",
+    "rollup-plugin-peer-deps-external": "2.2.4",
+    "typescript": "5.8.2"
+  }
+}
