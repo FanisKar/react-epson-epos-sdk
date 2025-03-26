@@ -69,20 +69,20 @@ export default App;
 The `usePrinter` hook provides access to the printer context, allowing you to interact with the printer directly:
 
 ```tsx
-import { usePrinter, PrintSymbolType, PrinterCutType, PrintSymbolLevel } from 'react-epson-epos-sdk';
+import { usePrinter, PrintSymbolType, PrinterCutType, PrintSymbolLevel } from "react-epson-epos-sdk";
 
 const PrintButton = () => {
   const { printer, status, print } = usePrinter();
 
   const handlePrint = async () => {
     if (!printer) {
-      throw new Error('Printer not found!');
+      throw new Error("Printer not found!");
     }
     // Add text to the print job
-    printer.addText('Hello, Epson!', { addNewLine: true, capitalize: true });
+    printer.addText("Hello, Epson!", { addNewLine: true, capitalize: true });
 
     // Add a 2D symbol (e.g., QR Code)
-    printer.addSymbol('https://example.com', {
+    printer.addSymbol("https://example.com", {
       type: PrintSymbolType.QRCODE_MODEL_2,
       level: PrintSymbolLevel.LEVEL_M,
       width: 4,
@@ -94,14 +94,14 @@ const PrintButton = () => {
     // Send the print job
     try {
       await print();
-      console.log('Print job sent successfully!');
+      console.log("Print job sent successfully!");
     } catch (error) {
-      console.error('Failed to send print job:', error);
+      console.error("Failed to send print job:", error);
     }
   };
 
   return (
-    <button onClick={handlePrint} disabled={status !== 'CONNECTED'}>
+    <button onClick={handlePrint} disabled={status !== "CONNECTED"}>
       Print
     </button>
   );
@@ -136,11 +136,11 @@ The `usePrinter` hook provides access to the following:
 
 The `Printer` class provides the following methods for building print jobs:
 
-- **`addText(text: string, options?: { rightPadding?: number; addNewLine?: boolean; alignRight?: boolean; capitalize?: boolean })`**
+- **`addText(text: string, options?: AddTextOptions)`**
 
   - Adds text to the print job with optional formatting.
 
-- **`addSymbol(data: string, options: { type: PrintSymbolType; level: AllowedPrintSymbolLevel; width?: number; height?: number; size?: number })`**
+- **`addSymbol(data: string, options: AddSymbolOptions)`**
 
   - Adds a 2D symbol (e.g., QR Code, PDF417, DataMatrix) to the print job with customizable options.
 

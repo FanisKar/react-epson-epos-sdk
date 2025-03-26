@@ -3,7 +3,7 @@ import { cloneDeep } from "lodash";
 import { capitalizeAndRemoveAccents } from "../utils/text.utils";
 import { breakText, setRightAlignment } from "./Printer.utils";
 import { PrintColor, PrinterAlign, PrinterCutType, PrinterTextFont, PrintSymbolLevel, PrintSymbolType } from "./Printer.enums";
-import { AllowedPrintSymbolLevel, TextSize, TextStyle } from "./Printer.types";
+import { AddSymbolOptions, AddTextOptions, AllowedPrintSymbolLevel, TextSize, TextStyle } from "./Printer.types";
 import { PaperSize } from "../providers/PrinterProvider.enum";
 
 export class Printer {
@@ -49,25 +49,7 @@ export class Printer {
     this.setTextStyle({ reverse: false, ul: false, em: false, color: PrintColor.COLOR_1 });
   }
 
-  addText(
-    text: string,
-    {
-      rightPadding = 0,
-      addNewLine = false,
-      alignRight = false,
-      capitalize = false,
-    }: {
-      rightPadding?: number;
-      addNewLine?: boolean;
-      alignRight?: boolean;
-      capitalize?: boolean;
-    } = {
-      rightPadding: 0,
-      addNewLine: false,
-      alignRight: false,
-      capitalize: false,
-    }
-  ): void {
+  addText(text: string, { rightPadding = 0, addNewLine = false, alignRight = false, capitalize = false }: AddTextOptions = {}): void {
     if (alignRight) {
       this.xmlChunks.push(`<text>${setRightAlignment(this.cursorX, text.length, this.getCharactersPerLine())}</text>`);
     }
@@ -157,16 +139,7 @@ export class Printer {
    *
    * @returns {void}
    */
-  addSymbol(
-    data: string,
-    {
-      type,
-      level,
-      width,
-      height,
-      size,
-    }: { type: PrintSymbolType; level: AllowedPrintSymbolLevel; width?: number; height?: number; size?: number }
-  ): void {
+  addSymbol(data: string, { type, level, width, height, size }: AddSymbolOptions): void {
     const widthStr = width ? ` width="${width}"` : "";
     const heightStr = height ? ` height="${height}"` : "";
     const sizeStr = size ? ` size="${size}"` : "";
