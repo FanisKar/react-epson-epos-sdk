@@ -1,5 +1,7 @@
 # react-epson-epos-sdk
 
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/FanisKar/react-epson-epos-sdk)
+
 A React library that provides a modern and extensible alternative to the Epson ePOS SDK, enabling seamless management of Epson printer connections, text formatting, and print job handling via HTTP.
 
 > **Note**: This library is a **Work in Progress (WIP)**. While it supports many common functionalities, any unsupported features can be implemented using the `addXmlChunk` method in the `Printer` class. Contributions and feature requests are welcome!
