@@ -2,8 +2,8 @@ import axios from "axios";
 import { cloneDeep } from "lodash";
 import { capitalizeAndRemoveAccents } from "../utils/text.utils";
 import { breakText, setRightAlignment } from "./Printer.utils";
-import { PrintColor, PrinterAlign, PrinterCutType, PrinterTextFont } from "./Printer.enums";
-import { TextSize, TextStyle } from "./Printer.types";
+import { PrintColor, PrinterAlign, PrinterCutType, PrinterTextFont, PrintSymbolLevel, PrintSymbolType } from "./Printer.enums";
+import { AllowedPrintSymbolLevel, TextSize, TextStyle } from "./Printer.types";
 import { PaperSize } from "../providers/PrinterProvider.enum";
 
 export class Printer {
@@ -128,8 +128,49 @@ export class Printer {
     this.xmlChunks.push(`<cut type="${type}" />`);
   }
 
-  addQrCode(data: string): void {
-    this.xmlChunks.push(`<symbol type="qrcode" level="H" cell="4">${this.escapeXml(data)}</symbol>`);
+  /**
+   * Adds a 2D barcode symbol to the print buffer in XML format.
+   *
+   * @param {string} data - The content/data to encode within the symbol.
+   *
+   * @param {Object} options - Configuration options for the symbol.
+   * @param {PrintSymbolType} options.type - The type of 2D code to print (e.g. QR Code, PDF417, etc.).
+   * @param {AllowedPrintSymbolLevel} options.level - Error correction level or symbol quality level,
+   * depending on the barcode type.
+   * @param {number} [options.width] - Optional. Specifies the width of each module (square block) in dots.
+   *
+   * - The valid range is:
+   *    - **QR Code**: 1 to 16 (default = 3)
+   *    - **PDF417**: 2 to 8 (default = 3)
+   *    - **Aztec/DataMatrix/GS1 DataBar**: 2 to 16 or 2 to 8 depending on type
+   *    - **MaxiCode**: Ignored
+   *
+   * @param {number} [options.height] - Optional. Specifies the height of each module in dots.
+   *
+   * - Only applies to **PDF417**, range: 2 to 8 (default = 3). For other types, height is ignored.
+   *
+   * @param {number} [options.size] - Optional. Size-specific attribute depending on symbol type:
+   *
+   * - **PDF417**: Specifies number of codewords per row (default = 0)
+   * - **GS1 DataBar (Expanded Stacked)**: Specifies maximum width (default = 0 for auto)
+   * - **Others (QR Code, MaxiCode, Aztec, DataMatrix)**: Ignored
+   *
+   * @returns {void}
+   */
+  addSymbol(
+    data: string,
+    {
+      type,
+      level,
+      width,
+      height,
+      size,
+    }: { type: PrintSymbolType; level: AllowedPrintSymbolLevel; width?: number; height?: number; size?: number }
+  ): void {
+    const widthStr = width ? ` width="${width}"` : "";
+    const heightStr = height ? ` height="${height}"` : "";
+    const sizeStr = size ? ` size="${size}"` : "";
+    this.xmlChunks.push(`<symbol type="${type}" level="${level}"${widthStr}${heightStr}${sizeStr}>${this.escapeXml(data)}</symbol>`);
   }
 
   addHorizontalLine(): void {

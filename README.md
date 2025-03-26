@@ -10,7 +10,7 @@ A React library that provides a modern and extensible alternative to the Epson e
 
 - **Printer Management**: Easily manage printer connections and statuses using the `PrinterProvider`.
 - **Text Formatting**: Customize text alignment, font, size, and style.
-- **QR Code Support**: Add QR codes to your print jobs.
+- **2D Symbol Support**: Add various 2D symbols (e.g., QR Code, PDF417, DataMatrix) to your print jobs with customizable options.
 - **Custom XML Support**: Extend functionality by adding raw XML chunks.
 - **Automatic Retry**: When the printer connection is lost, the library keeps the commands in memory and automatically sends them once the printer is back online.
 - **React Integration**: Built with React for seamless integration into your applications.
@@ -50,7 +50,6 @@ Ensure you have the following peer dependencies installed in your project:
 Wrap your application with the `PrinterProvider` to manage printer connections and state:
 
 ```tsx
-import React from "react";
 import { PrinterProvider } from "react-epson-epos-sdk";
 import { PaperSize } from "react-epson-epos-sdk";
 
@@ -70,18 +69,24 @@ export default App;
 The `usePrinter` hook provides access to the printer context, allowing you to interact with the printer directly:
 
 ```tsx
-import React from "react";
-import { usePrinter, PrinterCutType } from "react-epson-epos-sdk";
+import { usePrinter, PrintSymbolType, PrinterCutType, PrintSymbolLevel } from 'react-epson-epos-sdk';
 
 const PrintButton = () => {
-  const { printer, connection, print } = usePrinter();
+  const { printer, status, print } = usePrinter();
 
   const handlePrint = async () => {
+    if (!printer) {
+      throw new Error('Printer not found!');
+    }
     // Add text to the print job
-    printer.addText("Hello, Epson!", { addNewLine: true, capitalize: true });
+    printer.addText('Hello, Epson!', { addNewLine: true, capitalize: true });
 
-    // Add a QR code
-    printer.addQrCode("https://example.com");
+    // Add a 2D symbol (e.g., QR Code)
+    printer.addSymbol('https://example.com', {
+      type: PrintSymbolType.QRCODE_MODEL_2,
+      level: PrintSymbolLevel.LEVEL_M,
+      width: 4,
+    });
 
     // Add a cut command
     printer.addCut(PrinterCutType.CUT_FEED);
@@ -89,14 +94,14 @@ const PrintButton = () => {
     // Send the print job
     try {
       await print();
-      console.log("Print job sent successfully!");
+      console.log('Print job sent successfully!');
     } catch (error) {
-      console.error("Failed to send print job:", error);
+      console.error('Failed to send print job:', error);
     }
   };
 
   return (
-    <button onClick={handlePrint} disabled={connection.status !== "CONNECTED"}>
+    <button onClick={handlePrint} disabled={status !== 'CONNECTED'}>
       Print
     </button>
   );
@@ -135,9 +140,9 @@ The `Printer` class provides the following methods for building print jobs:
 
   - Adds text to the print job with optional formatting.
 
-- **`addQrCode(data: string)`**
+- **`addSymbol(data: string, options: { type: PrintSymbolType; level: AllowedPrintSymbolLevel; width?: number; height?: number; size?: number })`**
 
-  - Adds a QR code to the print job.
+  - Adds a 2D symbol (e.g., QR Code, PDF417, DataMatrix) to the print job with customizable options.
 
 - **`addCut(type?: PrinterCutType)`**
 
@@ -209,6 +214,34 @@ The `Printer` class provides the following methods for building print jobs:
 
 - `SIZE_80MM`
 - `SIZE_58MM`
+
+### PrintSymbolType
+
+- `PDF417_standard`
+- `PDF417_truncated`
+- `QRCODE_MODEL_1`
+- `QRCODE_MODEL_2`
+- `MAXICODE_MODE_2`
+- `MAXICODE_MODE_3`
+- `MAXICODE_MODE_4`
+- `MAXICODE_MODE_5`
+- `MAXICODE_MODE_6`
+- `GS1_DATABAR_STACKED`
+- `GS1_DATABAR_STACKED_OMNIDIRECTIONAL`
+- `GS1_DATABAR_EXPANDED_STACKED`
+- `AZTECCODE_FULLRANGE`
+- `AZTECCODE_COMPACT`
+- `DATAMATRIX_SQUARE`
+- `DATAMATRIX_RECTANGLE_8`
+- `DATAMATRIX_RECTANGLE_12`
+- `DATAMATRIX_RECTANGLE_16`
+
+### PrintSymbolLevel
+
+- `LEVEL_0` to `LEVEL_8` (PDF417 error correction levels)
+- `LEVEL_L`, `LEVEL_M`, `LEVEL_Q`, `LEVEL_H` (QR Code error correction levels)
+- `DEFAULT`
+- **Note**: Aztec Code has error correction levels ranging from 5 to 95 (Default: 23).
 
 ---
 

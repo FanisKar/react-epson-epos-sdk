@@ -1,4 +1,4 @@
-import { PrintColor } from "./Printer.enums";
+import { PrintColor, PrintSymbolLevel } from "./Printer.enums";
 
 export interface TextSize {
     width: number;
@@ -11,3 +11,6 @@ export interface TextStyle {
     em: boolean;
     color: PrintColor;
 }
+
+// Aztec Code has error correction level from 5 to 95 (Default: 23)
+export type AllowedPrintSymbolLevel = PrintSymbolLevel | number;

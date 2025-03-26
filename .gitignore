@@ -1,3 +1,7 @@
 # Node.js
 node_modules/
 dist/
+
+# Yalc
+.yalc/
+yalc.lock
