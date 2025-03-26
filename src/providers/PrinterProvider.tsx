@@ -8,7 +8,7 @@ const HEART_BEAT_INTERVAL = 5000;
 const PrinterContext = createContext<{
   status: ConnectionStatus;
   printer: Printer | undefined;
-  print: ({ retryOnError }: { retryOnError: boolean }) => Promise<{ printResult: PrintResult }>;
+  print: ({ retryOnError }?: { retryOnError: boolean }) => Promise<{ printResult: PrintResult }>;
 }>({
   status: ConnectionStatus.DISCONNECTED,
   printer: undefined,
