@@ -66,7 +66,7 @@ export class Printer {
     this.cursorX += lines[lines.length - 1].length;
     this.cursorX %= this.getCharactersPerLine();
 
-    if (addNewLine) {
+    if (addNewLine || alignRight) {
       this.addNewLine();
     }
   }
