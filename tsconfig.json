@@ -7,10 +7,12 @@
       "declarationDir": "dist",
       "emitDeclarationOnly": false,
       "strict": true,
-      "moduleResolution": "node",
+      "moduleResolution": "bundler",
       "esModuleInterop": true,
       "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true
+      "forceConsistentCasingInFileNames": true,
+      "rootDir": "./src",
+      "ignoreDeprecations": "6.0"
     },
     "include": ["src"]
   }
