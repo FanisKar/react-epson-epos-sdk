@@ -25,7 +25,7 @@ export type PrinterRegistry = {
  * Holds printer instances, connection snapshots, retry queues, and `printForId`.
  * `printersKey` changes only when the effective printer list/config changes (not when the array reference alone changes).
  */
-export function usePrinterRegistry(printers: PrinterConfig[]): PrinterRegistry {
+export function usePrinterRegistry(printers: PrinterConfig[], testMode = false): PrinterRegistry {
   const printersRef = useRef(printers);
   printersRef.current = printers;
 
@@ -90,8 +90,8 @@ export function usePrinterRegistry(printers: PrinterConfig[]): PrinterRegistry {
   }, []);
 
   const printForId = useMemo(
-    () => createPrintForId({ instancesRef, setPrinterStates, setUnprintedById }),
-    [instancesRef, setPrinterStates, setUnprintedById]
+    () => createPrintForId({ instancesRef, printersRef, testMode, setPrinterStates, setUnprintedById }),
+    [instancesRef, printersRef, testMode, setPrinterStates, setUnprintedById]
   );
 
   return useMemo(

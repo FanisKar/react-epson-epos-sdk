@@ -18,6 +18,7 @@ A React library that provides a modern and extensible alternative to the Epson e
 - **React Integration**: Built with React for seamless integration into your applications.
 - **Improved Text Splitting**: The addText method has been enhanced to ensure that words are not split across lines. If a word doesn't fit on the current line, it is moved entirely to the next line, improving readability and maintaining proper word boundaries in printed content. This replaces the default behavior of Epson ePOS SDK which breaks text at the character level.
 - **Async Print Method**: Unlike the official Epson ePOS SDK, this library's `print` method is asynchronous and returns a result (`SUCCESS` or `ERROR`). This provides better handling and a clearer overview of your print jobs, making it easier to manage printing operations.
+- **Test mode**: Optional `testMode` on `PrinterProvider` skips all printer HTTP calls, marks configured printers as connected, logs each print (IP + full XML), and makes `print()` return `SUCCESS` for dry runs.
 
 ---
 
@@ -94,6 +95,25 @@ Optional **`options`** per printer (defaults match the previous single-printer H
 }
 ```
 
+### Test mode (`testMode`)
+
+Set **`testMode`** on `PrinterProvider` when you want to exercise printing UI without hitting the network.
+
+When **`testMode` is `true`**:
+
+- No requests are sent for heartbeats (`checkOnline`) or jobs (`send`).
+- Every printer in the **`printers`** list reports status **`CONNECTED`**.
+- Calling **`print()`** logs a message to the console with that printer’s **`printerIp`** and the **full XML** payload (`toXml()`), clears the in-memory buffer like a successful print, and returns **`PrintResult.SUCCESS`**.
+
+```tsx
+<PrinterProvider
+  printers={[{ id: "receipt", printerIp: "192.168.0.100", paperSize: PaperSize.SIZE_80MM }]}
+  testMode={import.meta.env.DEV}
+/>
+```
+
+Do not leave `testMode` enabled in production if receipts may contain sensitive data (the full XML is logged).
+
 ### Using the `usePrinter` Hook
 
 Pass the **same `id`** you used in the `printers` list. The hook returns that printer’s instance, connection status, and `print()`.
@@ -148,14 +168,15 @@ export default PrintButton;
 
 | Prop          | Type               | Description                                                                                    |
 | ------------- | ------------------ | ---------------------------------------------------------------------------------------------- |
-| `printers`    | `PrinterConfig[]`  | Configured printers. Change this array to add/remove/update devices; each row must have a unique `id`. |
+| `printers`    | `PrinterConfig[]`  | Configured printers. Change this array to add/remove/update devices; each row must have a unique `id`. An empty array is allowed (no connections, no printing). |
 | `isDebugMode` | `boolean`          | (Optional) Enables debug logging for printer status and unprinted data.                        |
+| `testMode`    | `boolean`          | (Optional) If `true`, skips all printer HTTP traffic; all configured printers show as connected; `print()` logs IP + XML and returns success. Default: `false`. |
 
 Each **`PrinterConfig`** has `id`, `printerIp`, `paperSize`, and optional **`options`** (`devId`, `requestTimeoutMs`, `useHttps`). Export **`PrinterConfig`** / **`PrinterConnectionOptions`** from the package when typing your list.
 
 ### usePrinter Hook
 
-Call **`usePrinter(printerId)`** with an id from the `printers` prop. Unknown ids throw. You get:
+Call **`usePrinter(printerId)`** with an id from the `printers` prop. If the id is **not** in `printers`, the hook still works: **`status`** stays **`DISCONNECTED`**, **`printer`** is **`undefined`**, and **`print()`** resolves to **`ERROR`** (no throw). You get:
 
 - **`printer`**: An instance of the `Printer` class for that id.
 - **`status`**: The current connection status (`CONNECTED`, `DISCONNECTED`, etc.).

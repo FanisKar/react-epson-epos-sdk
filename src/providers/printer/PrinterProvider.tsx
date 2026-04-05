@@ -10,13 +10,14 @@ type PrinterProviderProps = {
   children: ReactNode;
   printers: PrinterConfig[];
   isDebugMode?: boolean;
+  testMode?: boolean;
 };
 
-export const PrinterProvider: FC<PrinterProviderProps> = ({ children, printers, isDebugMode }) => {
+export const PrinterProvider: FC<PrinterProviderProps> = ({ children, printers, isDebugMode, testMode }) => {
   assertUniquePrinterIds(printers);
 
-  const registry = usePrinterRegistry(printers);
-  usePrinterRegistryEffects(registry, isDebugMode);
+  const registry = usePrinterRegistry(printers, testMode);
+  usePrinterRegistryEffects(registry, isDebugMode, testMode);
 
   const contextValue = useMemo(
     () => ({

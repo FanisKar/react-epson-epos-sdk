@@ -1,11 +1,14 @@
 import dayjs from "dayjs";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { Printer } from "../../components/Printer";
+import type { PrinterConfig } from "../printer.types";
 import { ConnectionStatus, PrintResult } from "../PrinterProvider.enum";
 import type { PrinterRuntimeState, UnprintedQueueEntry } from "./internalTypes";
 
 type Args = {
   instancesRef: RefObject<Map<string, Printer>>;
+  printersRef: RefObject<PrinterConfig[]>;
+  testMode: boolean;
   setPrinterStates: Dispatch<SetStateAction<Record<string, PrinterRuntimeState | undefined>>>;
   setUnprintedById: Dispatch<SetStateAction<Record<string, UnprintedQueueEntry[]>>>;
 };
@@ -13,7 +16,7 @@ type Args = {
 /**
  * Sends the current XML buffer for one printer. On failure, optionally re-queues chunks (same behavior as v1).
  */
-export function createPrintForId({ instancesRef, setPrinterStates, setUnprintedById }: Args) {
+export function createPrintForId({ instancesRef, printersRef, testMode, setPrinterStates, setUnprintedById }: Args) {
   return async function printForId(
     id: string,
     { retryOnError }: { retryOnError?: boolean } = { retryOnError: true }
@@ -22,6 +25,13 @@ export function createPrintForId({ instancesRef, setPrinterStates, setUnprintedB
       const printer = instancesRef.current.get(id);
       if (!printer) {
         return { printResult: PrintResult.ERROR };
+      }
+      if (testMode) {
+        const printerIp = printersRef.current.find(p => p.id === id)?.printerIp ?? "(unknown)";
+        const xml = printer.toXml();
+        console.log("[react-epson-epos-sdk] testMode print", { printerIp, xml });
+        printer.setXmlChunks([]);
+        return { printResult: PrintResult.SUCCESS };
       }
       try {
         await printer.send();

@@ -1,4 +1,4 @@
-import { useContext, useMemo } from "react";
+import { useCallback, useContext, useMemo } from "react";
 import { ConnectionStatus, PrintResult } from "../PrinterProvider.enum";
 import type { Printer } from "../../components/Printer";
 import { PrinterContext } from "./printerContext";
@@ -12,20 +12,28 @@ export function usePrinterFromContext(printerId: string): {
   if (!ctx) {
     throw new Error("usePrinter must be used within a PrinterProvider");
   }
-  if (!ctx.printerIdSet.has(printerId)) {
-    throw new Error(
-      `Unknown printer id "${printerId}". It must be included in the PrinterProvider printers prop (and match an existing id exactly).`
-    );
-  }
 
-  const { instancesRef, instanceEpoch, printerStates, printForId } = ctx;
+  const { instancesRef, instanceEpoch, printerStates, printForId, printerIdSet } = ctx;
+  const isConfigured = printerIdSet.has(printerId);
+
+  const printWhenUnconfigured = useCallback(
+    async (_opts?: { retryOnError?: boolean }) => ({ printResult: PrintResult.ERROR }),
+    []
+  );
 
   return useMemo(
-    () => ({
-      printer: instancesRef.current.get(printerId),
-      status: printerStates[printerId]?.status ?? ConnectionStatus.DISCONNECTED,
-      print: (opts?: { retryOnError?: boolean }) => printForId(printerId, opts),
-    }),
-    [instancesRef, instanceEpoch, printerId, printerStates, printForId]
+    () =>
+      isConfigured
+        ? {
+            printer: instancesRef.current.get(printerId),
+            status: printerStates[printerId]?.status ?? ConnectionStatus.DISCONNECTED,
+            print: (opts?: { retryOnError?: boolean }) => printForId(printerId, opts),
+          }
+        : {
+            printer: undefined,
+            status: ConnectionStatus.DISCONNECTED,
+            print: printWhenUnconfigured,
+          },
+    [isConfigured, instancesRef, instanceEpoch, printerId, printerStates, printForId, printWhenUnconfigured]
   );
 }

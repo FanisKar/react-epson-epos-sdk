@@ -1,13 +1,27 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { ConnectionStatus } from "../PrinterProvider.enum";
 import { PRINTER_HEARTBEAT_INTERVAL_MS } from "./printerProvider.constants";
 import type { PrinterRegistry } from "./usePrinterRegistry";
 
+/** In test mode, mark every configured printer as connected without network calls. */
+function useTestModePrinterStatus(registry: PrinterRegistry, testMode: boolean | undefined): void {
+  const { printersKey, printersRef, setStatusForId } = registry;
+
+  useLayoutEffect(() => {
+    if (!testMode) return;
+    for (const p of printersRef.current) {
+      setStatusForId(p.id, ConnectionStatus.CONNECTED);
+    }
+  }, [printersKey, testMode, printersRef, setStatusForId]);
+}
+
 /** Polls each printer on an interval and updates `printerStates[id].status`. */
-function usePrinterHeartbeats(registry: PrinterRegistry): void {
+function usePrinterHeartbeats(registry: PrinterRegistry, testMode: boolean | undefined): void {
   const { printersKey, printersRef, instancesRef, setStatusForId } = registry;
 
   useEffect(() => {
+    if (testMode) return;
+
     const list = printersRef.current;
     const pendingTimeouts: number[] = [];
     let cancelled = false;
@@ -35,7 +49,7 @@ function usePrinterHeartbeats(registry: PrinterRegistry): void {
       cancelled = true;
       pendingTimeouts.forEach(clearTimeout);
     };
-  }, [printersKey, printersRef, instancesRef, setStatusForId]);
+  }, [printersKey, testMode, printersRef, instancesRef, setStatusForId]);
 }
 
 /** When a printer reconnects, flushes one queued failed job per tick (same idea as v1). */
@@ -98,8 +112,13 @@ function useDebugPrinterLogs(registry: PrinterRegistry, isDebugMode: boolean | u
 }
 
 /** Side effects owned by the provider: heartbeats, retry flush, optional logging. */
-export function usePrinterRegistryEffects(registry: PrinterRegistry, isDebugMode?: boolean): void {
-  usePrinterHeartbeats(registry);
+export function usePrinterRegistryEffects(
+  registry: PrinterRegistry,
+  isDebugMode?: boolean,
+  testMode?: boolean
+): void {
+  useTestModePrinterStatus(registry, testMode);
+  usePrinterHeartbeats(registry, testMode);
   useFlushUnprintedOnReconnect(registry, isDebugMode);
   useDebugPrinterLogs(registry, isDebugMode);
 }
