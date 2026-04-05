@@ -50,7 +50,9 @@ Ensure you have the following peer dependencies installed in your project:
 
 ### Setting Up the PrinterProvider
 
-Wrap your application with the `PrinterProvider` to manage printer connections and state:
+Wrap your application with the `PrinterProvider` and pass a **`printers` list**. Each entry needs a stable **`id`**, **`printerIp`**, and **`paperSize`**. You can add or remove printers by updating this list.
+
+**One printer** (same behavior as before, with an explicit id):
 
 ```tsx
 import { PrinterProvider } from "react-epson-epos-sdk";
@@ -58,7 +60,10 @@ import { PaperSize } from "react-epson-epos-sdk";
 
 const App = () => {
   return (
-    <PrinterProvider printerIp="192.168.0.100" paperSize={PaperSize.SIZE_80MM} isDebugMode={true}>
+    <PrinterProvider
+      printers={[{ id: "receipt", printerIp: "192.168.0.100", paperSize: PaperSize.SIZE_80MM }]}
+      isDebugMode={true}
+    >
       {/* Your application components */}
     </PrinterProvider>
   );
@@ -67,15 +72,37 @@ const App = () => {
 export default App;
 ```
 
+**Several printers**:
+
+```tsx
+<PrinterProvider
+  printers={[
+    { id: "receipt", printerIp: "192.168.0.10", paperSize: PaperSize.SIZE_80MM },
+    { id: "kitchen", printerIp: "192.168.0.11", paperSize: PaperSize.SIZE_58MM },
+  ]}
+/>
+```
+
+Optional **`options`** per printer (defaults match the previous single-printer HTTP behavior):
+
+```tsx
+{
+  id: "receipt",
+  printerIp: "192.168.0.100",
+  paperSize: PaperSize.SIZE_80MM,
+  options: { devId: "local_printer", requestTimeoutMs: 5000, useHttps: true },
+}
+```
+
 ### Using the `usePrinter` Hook
 
-The `usePrinter` hook provides access to the printer context, allowing you to interact with the printer directly:
+Pass the **same `id`** you used in the `printers` list. The hook returns that printer’s instance, connection status, and `print()`.
 
 ```tsx
 import { usePrinter, PrintSymbolType, PrinterCutType, PrintSymbolLevel } from "react-epson-epos-sdk";
 
 const PrintButton = () => {
-  const { printer, status, print } = usePrinter();
+  const { printer, status, print } = usePrinter("receipt");
 
   const handlePrint = async () => {
     if (!printer) {
@@ -119,19 +146,20 @@ export default PrintButton;
 
 ### PrinterProvider
 
-| Prop          | Type        | Description                                                             |
-| ------------- | ----------- | ----------------------------------------------------------------------- |
-| `printerIp`   | `string`    | The IP address of the printer.                                          |
-| `paperSize`   | `PaperSize` | The paper size, using the `PaperSize` enum.                             |
-| `isDebugMode` | `boolean`   | (Optional) Enables debug logging for printer status and unprinted data. |
+| Prop          | Type               | Description                                                                                    |
+| ------------- | ------------------ | ---------------------------------------------------------------------------------------------- |
+| `printers`    | `PrinterConfig[]`  | Configured printers. Change this array to add/remove/update devices; each row must have a unique `id`. |
+| `isDebugMode` | `boolean`          | (Optional) Enables debug logging for printer status and unprinted data.                        |
+
+Each **`PrinterConfig`** has `id`, `printerIp`, `paperSize`, and optional **`options`** (`devId`, `requestTimeoutMs`, `useHttps`). Export **`PrinterConfig`** / **`PrinterConnectionOptions`** from the package when typing your list.
 
 ### usePrinter Hook
 
-The `usePrinter` hook provides access to the following:
+Call **`usePrinter(printerId)`** with an id from the `printers` prop. Unknown ids throw. You get:
 
-- **`printer`**: An instance of the `Printer` class.
-- **`connection`**: The current connection status (`CONNECTED`, `DISCONNECTED`, etc.).
-- **`print()`**: A method to send the current print job to the printer.
+- **`printer`**: An instance of the `Printer` class for that id.
+- **`status`**: The current connection status (`CONNECTED`, `DISCONNECTED`, etc.).
+- **`print()`**: Sends the current print job for that printer (async, returns `SUCCESS` or `ERROR`).
 
 ---
 

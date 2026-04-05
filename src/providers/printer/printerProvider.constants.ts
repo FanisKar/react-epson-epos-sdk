@@ -1,0 +1,1 @@
+export const PRINTER_HEARTBEAT_INTERVAL_MS = 5000;

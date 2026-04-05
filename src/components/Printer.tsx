@@ -5,9 +5,10 @@ import { breakText, setRightAlignment } from "./Printer.utils";
 import { PrintColor, PrinterAlign, PrinterCutType, PrinterTextFont, PrintSymbolLevel, PrintSymbolType } from "./Printer.enums";
 import { AddSymbolOptions, AddTextOptions, AllowedPrintSymbolLevel, TextSize, TextStyle } from "./Printer.types";
 import { PaperSize } from "../providers/PrinterProvider.enum";
+import type { PrinterConnectionOptions } from "../providers/printer.types";
 
 export class Printer {
-  private static readonly TIMEOUT = 5000;
+  private static readonly DEFAULT_TIMEOUT_MS = 5000;
   private static readonly HEARTBEAT_XML = `<?xml version="1.0" encoding="utf-8"?>
   <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
     <s:Body>
@@ -17,15 +18,21 @@ export class Printer {
 
   private printerIp: string;
   private paperSize: PaperSize;
+  private connectionOptions: Required<Pick<PrinterConnectionOptions, "devId" | "requestTimeoutMs" | "useHttps">>;
   private textFont = PrinterTextFont.FONT_A;
   private textSize: TextSize = { width: 1, height: 1 };
   private textStyle: TextStyle = { reverse: false, ul: false, em: false, color: PrintColor.COLOR_1 };
   private cursorX = 0;
   private xmlChunks: string[] = [];
 
-  constructor(printerIp: string, paperSize: PaperSize) {
+  constructor(printerIp: string, paperSize: PaperSize, options?: PrinterConnectionOptions) {
     this.printerIp = printerIp;
     this.paperSize = paperSize;
+    this.connectionOptions = {
+      devId: options?.devId ?? "local_printer",
+      requestTimeoutMs: options?.requestTimeoutMs ?? Printer.DEFAULT_TIMEOUT_MS,
+      useHttps: options?.useHttps ?? true,
+    };
   }
 
   addXmlChunk = (xmlChunk: string): void => {
@@ -194,7 +201,10 @@ export class Printer {
   }
 
   private sendRequest = (body: string): Promise<void> => {
-    return axios.post(`https://${this.printerIp}/cgi-bin/epos/service.cgi?devid=local_printer&timeout=${Printer.TIMEOUT}`, body, {
+    const scheme = this.connectionOptions.useHttps ? "https" : "http";
+    const { devId, requestTimeoutMs } = this.connectionOptions;
+    const url = `${scheme}://${this.printerIp}/cgi-bin/epos/service.cgi?devid=${encodeURIComponent(devId)}&timeout=${requestTimeoutMs}`;
+    return axios.post(url, body, {
       headers: {
         "Content-Type": "text/xml; charset=utf-8",
         SOAPAction: "",
