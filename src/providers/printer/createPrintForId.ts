@@ -41,27 +41,31 @@ export function createPrintForId({ instancesRef, printersRef, testMode, setPrint
       }
     };
 
-    const { printResult } = await execPrint();
+    const { printResult: attemptResult } = await execPrint();
 
-    if (printResult === PrintResult.ERROR) {
-      setPrinterStates(prev => {
-        const cur = prev[id]?.status;
-        if (cur !== ConnectionStatus.ERROR) {
-          return { ...prev, [id]: { status: ConnectionStatus.ERROR, timestamp: dayjs() } };
-        }
-        return prev;
-      });
-      const printer = instancesRef.current.get(id);
-      const xmlChunks = printer?.getXmlChunks();
-      if (printer && xmlChunks?.length && retryOnError) {
-        printer.setXmlChunks([]);
-        setUnprintedById(prev => ({
-          ...prev,
-          [id]: [...(prev[id] ?? []), { data: xmlChunks }],
-        }));
-      }
+    if (attemptResult !== PrintResult.ERROR) {
+      return { printResult: attemptResult };
     }
 
-    return { printResult };
+    setPrinterStates(prev => {
+      const cur = prev[id]?.status;
+      if (cur !== ConnectionStatus.ERROR) {
+        return { ...prev, [id]: { status: ConnectionStatus.ERROR, timestamp: dayjs() } };
+      }
+      return prev;
+    });
+
+    const printer = instancesRef.current.get(id);
+    const xmlChunks = printer?.getXmlChunks();
+    if (printer && xmlChunks?.length && retryOnError) {
+      printer.setXmlChunks([]);
+      setUnprintedById(prev => ({
+        ...prev,
+        [id]: [...(prev[id] ?? []), { data: xmlChunks }],
+      }));
+      return { printResult: PrintResult.QUEUED };
+    }
+
+    return { printResult: PrintResult.ERROR };
   };
 }

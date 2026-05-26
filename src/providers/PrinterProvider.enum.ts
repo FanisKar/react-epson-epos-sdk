@@ -1,6 +1,7 @@
 export enum PrintResult {
     SUCCESS = 'SUCCESS',
-    ERROR = 'ERROR'
+    QUEUED = 'QUEUED',
+    ERROR = 'ERROR',
 }
 
 export enum ConnectionStatus {

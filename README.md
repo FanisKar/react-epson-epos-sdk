@@ -17,7 +17,7 @@ A React library that provides a modern and extensible alternative to the Epson e
 - **Automatic Retry**: When the printer connection is lost, the library keeps the commands in memory and automatically sends them once the printer is back online.
 - **React Integration**: Built with React for seamless integration into your applications.
 - **Improved Text Splitting**: The addText method has been enhanced to ensure that words are not split across lines. If a word doesn't fit on the current line, it is moved entirely to the next line, improving readability and maintaining proper word boundaries in printed content. This replaces the default behavior of Epson ePOS SDK which breaks text at the character level.
-- **Async Print Method**: Unlike the official Epson ePOS SDK, this library's `print` method is asynchronous and returns a result (`SUCCESS` or `ERROR`). This provides better handling and a clearer overview of your print jobs, making it easier to manage printing operations.
+- **Async Print Method**: Unlike the official Epson ePOS SDK, this library's `print` method is asynchronous and returns `SUCCESS`, `QUEUED` (failed but saved for replay when the printer reconnects), or `ERROR` (failed with no retry). This provides better handling and a clearer overview of your print jobs, making it easier to manage printing operations.
 - **Test mode**: Optional `testMode` on `PrinterProvider` skips all printer HTTP calls, marks configured printers as connected, logs each print (IP + full XML), and makes `print()` return `SUCCESS` for dry runs.
 
 ---
@@ -180,7 +180,7 @@ Call **`usePrinter(printerId)`** with an id from the `printers` prop. If the id 
 
 - **`printer`**: An instance of the `Printer` class for that id.
 - **`status`**: The current connection status (`CONNECTED`, `DISCONNECTED`, etc.).
-- **`print()`**: Sends the current print job for that printer (async, returns `SUCCESS` or `ERROR`).
+- **`print()`**: Sends the current print job for that printer (async, returns `SUCCESS`, `QUEUED`, or `ERROR`).
 
 ---
 
