@@ -24,10 +24,18 @@ export const PrinterProvider: FC<PrinterProviderProps> = ({ children, printers, 
       printerIdSet: registry.printerIdSet,
       instancesRef: registry.instancesRef,
       instanceEpoch: registry.instanceEpoch,
-      printerStates: registry.printerStates,
-      printForId: registry.printForId,
+      subscribeToStatus: registry.subscribeToStatus,
+      getStatusForId: registry.getStatusForId,
+      getPrintForId: registry.getPrintForId,
     }),
-    [registry.printerIdSet, registry.instancesRef, registry.instanceEpoch, registry.printerStates, registry.printForId]
+    [
+      registry.printerIdSet,
+      registry.instancesRef,
+      registry.instanceEpoch,
+      registry.subscribeToStatus,
+      registry.getStatusForId,
+      registry.getPrintForId,
+    ]
   );
 
   return <PrinterContext.Provider value={contextValue}>{children}</PrinterContext.Provider>;

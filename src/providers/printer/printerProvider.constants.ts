@@ -10,3 +10,6 @@ export const PRINTER_HEARTBEAT_CONNECTED_INTERVAL_MS = 60_000;
  */
 export const PRINTER_HEARTBEAT_DISCONNECTED_INTERVAL_MS = 5_000;
 
+/** Max failed jobs kept per printer id while offline. Oldest entries are dropped. */
+export const MAX_QUEUED_JOBS_PER_PRINTER = 100;
+

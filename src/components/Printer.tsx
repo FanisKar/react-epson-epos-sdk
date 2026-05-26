@@ -5,9 +5,11 @@ import { PrintColor, PrinterAlign, PrinterCutType, PrinterTextFont, PrintSymbolL
 import { AddSymbolOptions, AddTextOptions, AllowedPrintSymbolLevel, TextSize, TextStyle } from "./Printer.types";
 import { PaperSize } from "../providers/PrinterProvider.enum";
 import type { PrinterConnectionOptions } from "../providers/printer.types";
+import { buildPrinterHttpGateKey, runSerializedPrinterHttp } from "../utils/printer-http-gate";
 
 export class Printer {
-  private static readonly DEFAULT_TIMEOUT_MS = 5000;
+  private static readonly DEFAULT_HEARTBEAT_TIMEOUT_MS = 5000;
+  private static readonly DEFAULT_PRINT_TIMEOUT_MS = 20000;
   private static readonly HEARTBEAT_XML = `<?xml version="1.0" encoding="utf-8"?>
   <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
     <s:Body>
@@ -17,7 +19,9 @@ export class Printer {
 
   private printerIp: string;
   private paperSize: PaperSize;
-  private connectionOptions: Required<Pick<PrinterConnectionOptions, "devId" | "requestTimeoutMs" | "useHttps">>;
+  private connectionOptions: Required<
+    Pick<PrinterConnectionOptions, "devId" | "requestTimeoutMs" | "printRequestTimeoutMs" | "useHttps">
+  >;
   private textFont = PrinterTextFont.FONT_A;
   private textSize: TextSize = { width: 1, height: 1 };
   private textStyle: TextStyle = { reverse: false, ul: false, em: false, color: PrintColor.COLOR_1 };
@@ -29,7 +33,8 @@ export class Printer {
     this.paperSize = paperSize;
     this.connectionOptions = {
       devId: options?.devId ?? "local_printer",
-      requestTimeoutMs: options?.requestTimeoutMs ?? Printer.DEFAULT_TIMEOUT_MS,
+      requestTimeoutMs: options?.requestTimeoutMs ?? Printer.DEFAULT_HEARTBEAT_TIMEOUT_MS,
+      printRequestTimeoutMs: options?.printRequestTimeoutMs ?? Printer.DEFAULT_PRINT_TIMEOUT_MS,
       useHttps: options?.useHttps ?? true,
     };
   }
@@ -45,6 +50,13 @@ export class Printer {
 
   getXmlChunks = (): string[] => {
     return this.xmlChunks;
+  };
+
+  /** Synchronously returns and clears the buffer (plus cursor/style state) so a job can be snapshotted atomically before any `await`. */
+  consumeXmlChunks = (): string[] => {
+    const chunks = this.xmlChunks;
+    this.reset();
+    return chunks;
   };
 
   private reset(): void {
@@ -162,12 +174,13 @@ export class Printer {
     this.setTextStyle(textStyle);
   }
 
-  toXml(): string {
+  toXml(chunks?: string[]): string {
+    const source = chunks ?? this.xmlChunks;
     return `<?xml version="1.0" encoding="utf-8"?>
             <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
               <s:Body>
                 <epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
-                  ${this.xmlChunks.join("\n")}
+                  ${source.join("\n")}
                 </epos-print>
               </s:Body>
             </s:Envelope>`;
@@ -175,17 +188,20 @@ export class Printer {
 
   async checkOnline(): Promise<boolean> {
     try {
-      await this.sendRequest(Printer.HEARTBEAT_XML);
+      await this.sendRequest(Printer.HEARTBEAT_XML, this.connectionOptions.requestTimeoutMs);
       return true;
     } catch {
       return false;
     }
   }
 
+  sendChunks = async (chunks: string[]): Promise<void> => {
+    await this.sendRequest(this.toXml(chunks), this.connectionOptions.printRequestTimeoutMs);
+  };
+
   async send(): Promise<void> {
-    const xml = this.toXml();
-    await this.sendRequest(xml);
-    this.reset();
+    const chunks = this.consumeXmlChunks();
+    await this.sendChunks(chunks);
   }
 
   private escapeXml(unsafe: string): string {
@@ -199,13 +215,23 @@ export class Printer {
       .replace(/\t/g, "&#9;");
   }
 
-  private sendRequest = async (body: string): Promise<void> => {
+  private httpGateKey(): string {
+    const { devId, useHttps } = this.connectionOptions;
+    return buildPrinterHttpGateKey({ printerIp: this.printerIp, devId, useHttps });
+  }
+
+  private sendRequest = async (body: string, timeoutMs: number): Promise<void> => {
+    const gateKey = this.httpGateKey();
+    await runSerializedPrinterHttp(gateKey, () => this.postToPrinter(body, timeoutMs));
+  };
+
+  private postToPrinter = async (body: string, timeoutMs: number): Promise<void> => {
     const scheme = this.connectionOptions.useHttps ? "https" : "http";
-    const { devId, requestTimeoutMs } = this.connectionOptions;
-    const url = `${scheme}://${this.printerIp}/cgi-bin/epos/service.cgi?devid=${encodeURIComponent(devId)}&timeout=${requestTimeoutMs}`;
+    const { devId } = this.connectionOptions;
+    const url = `${scheme}://${this.printerIp}/cgi-bin/epos/service.cgi?devid=${encodeURIComponent(devId)}&timeout=${timeoutMs}`;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     // Chrome-only Local Network Access (LNA) opt-in: declares to Chrome that
     // this fetch is intentionally targeting a printer on the local network

@@ -60,7 +60,16 @@ function usePrinterHeartbeats(registry: PrinterRegistry, testMode: boolean | und
 
 /** When a printer reconnects, flushes one queued failed job per tick (same idea as v1). */
 function useFlushUnprintedOnReconnect(registry: PrinterRegistry, isDebugMode: boolean | undefined): void {
-  const { printersRef, printerStates, unprintedById, instancesRef, printForId, printersKey, setUnprintedById } = registry;
+  const {
+    printersRef,
+    statusVersion,
+    statusByIdRef,
+    unprintedById,
+    instancesRef,
+    printForId,
+    printersKey,
+    setUnprintedById,
+  } = registry;
 
   useEffect(() => {
     const list = printersRef.current;
@@ -68,7 +77,7 @@ function useFlushUnprintedOnReconnect(registry: PrinterRegistry, isDebugMode: bo
 
     for (const p of list) {
       const id = p.id;
-      if (printerStates[id]?.status !== ConnectionStatus.CONNECTED) continue;
+      if (statusByIdRef.current.get(id)?.status !== ConnectionStatus.CONNECTED) continue;
       const queue = unprintedById[id];
       if (!queue?.length) continue;
       const printer = instancesRef.current.get(id);
@@ -79,11 +88,8 @@ function useFlushUnprintedOnReconnect(registry: PrinterRegistry, isDebugMode: bo
     if (!flushJobs.length) return;
 
     for (const job of flushJobs) {
-      const printer = instancesRef.current.get(job.id);
-      if (!printer) continue;
-      printer.setXmlChunks(job.data);
       if (isDebugMode) console.log(`Printing unprinted data for "${job.id}"...`);
-      void printForId(job.id);
+      void printForId(job.id, { fromQueue: job.data });
     }
 
     setUnprintedById(prev => {
@@ -100,11 +106,21 @@ function useFlushUnprintedOnReconnect(registry: PrinterRegistry, isDebugMode: bo
       }
       return mutated ? next : prev;
     });
-  }, [printerStates, unprintedById, printersKey, printForId, isDebugMode, printersRef, instancesRef, setUnprintedById]);
+  }, [
+    statusVersion,
+    statusByIdRef,
+    unprintedById,
+    printersKey,
+    printForId,
+    isDebugMode,
+    printersRef,
+    instancesRef,
+    setUnprintedById,
+  ]);
 }
 
 function useDebugPrinterLogs(registry: PrinterRegistry, isDebugMode: boolean | undefined): void {
-  const { unprintedById, printerStates } = registry;
+  const { unprintedById, statusVersion, statusByIdRef } = registry;
 
   useEffect(() => {
     if (!isDebugMode) return;
@@ -113,8 +129,9 @@ function useDebugPrinterLogs(registry: PrinterRegistry, isDebugMode: boolean | u
 
   useEffect(() => {
     if (!isDebugMode) return;
-    console.log("Printer status:", printerStates);
-  }, [printerStates, isDebugMode]);
+    // `statusVersion` is the re-run trigger; the actual data lives in the ref.
+    console.log("Printer status:", Object.fromEntries(statusByIdRef.current));
+  }, [statusVersion, statusByIdRef, isDebugMode]);
 }
 
 /** Side effects owned by the provider: heartbeats, retry flush, optional logging. */

@@ -15,6 +15,7 @@ A React library that provides a modern and extensible alternative to the Epson e
 - **2D Symbol Support**: Add various 2D symbols (e.g., QR Code, PDF417, DataMatrix) to your print jobs with customizable options.
 - **Custom XML Support**: Extend functionality by adding raw XML chunks.
 - **Automatic Retry**: When the printer connection is lost, the library keeps the commands in memory and automatically sends them once the printer is back online.
+- **Serialized HTTP**: All requests to the same printer endpoint (print jobs, heartbeats, retries) are queued so only one `service.cgi` call runs at a time. Epson devices reject overlapping requests, which otherwise show up as short-lived canceled fetches in DevTools.
 - **React Integration**: Built with React for seamless integration into your applications.
 - **Improved Text Splitting**: The addText method has been enhanced to ensure that words are not split across lines. If a word doesn't fit on the current line, it is moved entirely to the next line, improving readability and maintaining proper word boundaries in printed content. This replaces the default behavior of Epson ePOS SDK which breaks text at the character level.
 - **Async Print Method**: Unlike the official Epson ePOS SDK, this library's `print` method is asynchronous and returns `SUCCESS`, `QUEUED` (failed but saved for replay when the printer reconnects), or `ERROR` (failed with no retry). This provides better handling and a clearer overview of your print jobs, making it easier to manage printing operations.
@@ -42,8 +43,8 @@ yarn add react-epson-epos-sdk
 
 Ensure you have the following peer dependencies installed in your project:
 
-- `react` (v17, v18, or v19)
-- `react-dom` (v17, v18, or v19)
+- `react` (v18 or v19)
+- `react-dom` (v18 or v19)
 
 ---
 
@@ -91,7 +92,7 @@ Optional **`options`** per printer (defaults match the previous single-printer H
   id: "receipt",
   printerIp: "192.168.0.100",
   paperSize: PaperSize.SIZE_80MM,
-  options: { devId: "local_printer", requestTimeoutMs: 5000, useHttps: true },
+  options: { devId: "local_printer", requestTimeoutMs: 5000, printRequestTimeoutMs: 20000, useHttps: true },
 }
 ```
 
@@ -172,7 +173,7 @@ export default PrintButton;
 | `isDebugMode` | `boolean`          | (Optional) Enables debug logging for printer status and unprinted data.                        |
 | `testMode`    | `boolean`          | (Optional) If `true`, skips all printer HTTP traffic; all configured printers show as connected; `print()` logs IP + XML and returns success. Default: `false`. |
 
-Each **`PrinterConfig`** has `id`, `printerIp`, `paperSize`, and optional **`options`** (`devId`, `requestTimeoutMs`, `useHttps`). Export **`PrinterConfig`** / **`PrinterConnectionOptions`** from the package when typing your list.
+Each **`PrinterConfig`** has `id`, `printerIp`, `paperSize`, and optional **`options`** (`devId`, `requestTimeoutMs`, `printRequestTimeoutMs`, `useHttps`). Export **`PrinterConfig`** / **`PrinterConnectionOptions`** from the package when typing your list.
 
 ### usePrinter Hook
 
