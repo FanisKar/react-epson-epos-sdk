@@ -1,6 +1,9 @@
 import { useEffect, useLayoutEffect } from "react";
 import { ConnectionStatus } from "../PrinterProvider.enum";
-import { PRINTER_HEARTBEAT_INTERVAL_MS } from "./printerProvider.constants";
+import {
+  PRINTER_HEARTBEAT_CONNECTED_INTERVAL_MS,
+  PRINTER_HEARTBEAT_DISCONNECTED_INTERVAL_MS,
+} from "./printerProvider.constants";
 import type { PrinterRegistry } from "./usePrinterRegistry";
 
 /** In test mode, mark every configured printer as connected without network calls. */
@@ -35,7 +38,10 @@ function usePrinterHeartbeats(registry: PrinterRegistry, testMode: boolean | und
         if (cancelled) return;
         setStatusForId(id, isOnline ? ConnectionStatus.CONNECTED : ConnectionStatus.ERROR);
         if (cancelled) return;
-        const tid = window.setTimeout(() => void tick(), PRINTER_HEARTBEAT_INTERVAL_MS);
+        const nextDelayMs = isOnline
+          ? PRINTER_HEARTBEAT_CONNECTED_INTERVAL_MS
+          : PRINTER_HEARTBEAT_DISCONNECTED_INTERVAL_MS;
+        const tid = window.setTimeout(() => void tick(), nextDelayMs);
         pendingTimeouts.push(tid);
       };
       void tick();
