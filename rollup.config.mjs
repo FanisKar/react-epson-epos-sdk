@@ -13,8 +13,7 @@ export default [
     external: [
       'react',
       'react-dom',
-      'react/jsx-runtime',
-      'axios'
+      'react/jsx-runtime'
     ],
     output: [
       {

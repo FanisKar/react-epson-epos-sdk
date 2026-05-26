@@ -1,4 +1,3 @@
-import axios from "axios";
 import { cloneDeep } from "lodash";
 import { capitalizeAndRemoveAccents } from "../utils/text.utils";
 import { breakText, setRightAlignment } from "./Printer.utils";
@@ -200,24 +199,41 @@ export class Printer {
       .replace(/\t/g, "&#9;");
   }
 
-  private sendRequest = (body: string): Promise<void> => {
+  private sendRequest = async (body: string): Promise<void> => {
     const scheme = this.connectionOptions.useHttps ? "https" : "http";
     const { devId, requestTimeoutMs } = this.connectionOptions;
     const url = `${scheme}://${this.printerIp}/cgi-bin/epos/service.cgi?devid=${encodeURIComponent(devId)}&timeout=${requestTimeoutMs}`;
-    return axios.post(url, body, {
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+    // Chrome-only Local Network Access (LNA) opt-in: declares to Chrome that
+    // this fetch is intentionally targeting a printer on the local network
+    // (e.g. 192.168.x.x). Without this, Chrome 142+ flags such requests in the
+    // Issues panel and will eventually block them. "local" is the current LNA
+    // value; "private" is kept as a deprecated alias. Non-Chromium browsers
+    // ignore the option safely.
+    const init: RequestInit & { targetAddressSpace?: "local" } = {
+      method: "POST",
       headers: {
         "Content-Type": "text/xml; charset=utf-8",
         SOAPAction: "",
         "If-Modified-Since": "Thu, 01 Jun 1970 00:00:00 GMT",
-        Authorization: undefined,
       },
-      transformRequest: [
-        (data, headers) => {
-          delete headers.Authorization;
-          return data;
-        },
-      ],
-    });
+      body,
+      credentials: "omit",
+      signal: controller.signal,
+      targetAddressSpace: "local",
+    };
+
+    try {
+      const response = await fetch(url, init);
+      if (!response.ok) {
+        throw new Error(`Printer request failed with status ${response.status}`);
+      }
+    } finally {
+      clearTimeout(timeoutId);
+    }
   };
 
   private getCharactersPerLine = (): number => {
